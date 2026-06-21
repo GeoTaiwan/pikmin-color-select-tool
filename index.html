@@ -33,30 +33,60 @@
         }
         label {
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 14px;
             display: block;
             font-size: 0.95rem;
+        }
+        .hint {
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: normal;
+            display: inline-block;
+            margin-left: 4px;
         }
         /* 放大輸入框與按鈕，方便手指點擊 */
         input[type="text"] {
             width: 100%;
             padding: 12px;
             margin-top: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1rem;
         }
-        input[type="color"] {
+        input[type="color"].main-picker {
             width: 100%;
-            height: 50px;
-            border: none;
+            height: 45px;
+            border: 1px solid #ccc;
             border-radius: 8px;
             cursor: pointer;
             margin-top: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             padding: 0;
+            background: none;
+        }
+        /* 快捷色塊網格配置 */
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+            margin-bottom: 16px;
+        }
+        .color-block {
+            height: 45px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            box-sizing: border-box;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        /* 當前選中色塊的高亮樣式 */
+        .color-block.active {
+            border: 3px solid #222;
+            transform: scale(1.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .output-box {
             background: #eef;
@@ -98,11 +128,23 @@
     <label for="pikminName">輸入 Pikmin 名字：</label>
     <input type="text" id="pikminName" placeholder="例如：紅皮克敏" value="皮克敏">
 
-    <label for="pikminColor">選擇顏色：</label>
-    <input type="color" id="pikminColor" value="#ff0000">
+    <label>自訂快捷色塊：<span class="hint">(點擊套用 / 連點已選色塊可修改)</span></label>
+    <div class="color-palette">
+        <div class="color-block" data-index="0"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="1"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="2"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="3"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="4"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="5"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="6"><input type="color" style="display:none;"></div>
+        <div class="color-block" data-index="7"><input type="color" style="display:none;"></div>
+    </div>
+
+    <label for="pikminColor">詳細顏色微調 (調色盤)：</label>
+    <input type="color" id="pikminColor" class="main-picker" value="#ff4d4f">
 
     <label>產生的代碼：</label>
-    <div class="output-box" id="outputCode">&lt;color=#ff0000&gt;皮克敏&lt;/color&gt;</div>
+    <div class="output-box" id="outputCode">&lt;color=#ff4d4f&gt;皮克敏&lt;/color&gt;</div>
 
     <button id="copyBtn">點擊複製</button>
 </div>
@@ -113,30 +155,92 @@
     const colorInput = document.getElementById('pikminColor');
     const outputCode = document.getElementById('outputCode');
     const copyBtn = document.getElementById('copyBtn');
+    const blocks = document.querySelectorAll('.color-block');
 
-    // 即時更新預覽畫面
+    // 預設的 8 種顏色 (紅、橙、黃、綠、藍、靛、紫、深灰)
+    const defaultColors = ['#ff4d4f', '#ff9c6e', '#ffec3d', '#73d13d', '#40a9ff', '#597ef7', '#9254de', '#333333'];
+
+    // 從瀏覽器本機快取讀取曾經儲存過的顏色
+    let savedColors = JSON.parse(localStorage.getItem('pikmin_palette'));
+    if (!savedColors || savedColors.length !== 8) {
+        savedColors = defaultColors;
+    }
+
+    // 更新程式碼輸出內容
     function updateOutput() {
-        // 如果使用者把名字清空，預設帶入 '皮克敏' 避免格式出錯
         const name = nameInput.value || '皮克敏'; 
         const color = colorInput.value;
-        // 組裝字串
         outputCode.textContent = `<color=${color}>${name}</color>`;
     }
 
-    // 監聽輸入與顏色改變事件
-    nameInput.addEventListener('input', updateOutput);
-    colorInput.addEventListener('input', updateOutput);
+    // 將當前的 8 色塊狀態永久暫存至本機
+    function savePaletteColors() {
+        const colorsToSave = [];
+        blocks.forEach(block => {
+            const picker = block.querySelector('input[type="color"]');
+            colorsToSave.push(picker.value);
+        });
+        localStorage.setItem('pikmin_palette', JSON.stringify(colorsToSave));
+    }
 
-    // 複製功能
+    // 初始化與綁定 8 個快捷色塊
+    blocks.forEach((block, index) => {
+        const picker = block.querySelector('input[type="color"]');
+        
+        // 設定初始顏色與背景圖示
+        picker.value = savedColors[index];
+        block.style.backgroundColor = savedColors[index];
+
+        // 頁面初次載入時，預設選取第一個色塊
+        if (index === 0) {
+            block.classList.add('active');
+            colorInput.value = savedColors[index];
+            updateOutput();
+        }
+
+        // 監聽點擊色塊事件
+        block.addEventListener('click', () => {
+            if (block.classList.contains('active')) {
+                // 情境一：如果已經是選取狀態，再次點擊就打開顏色選擇器讓使用者修改
+                picker.click();
+            } else {
+                // 情境二：如果是未選取狀態，點擊直接切換過去
+                blocks.forEach(b => b.classList.remove('active'));
+                block.classList.add('active');
+                
+                // 同步將該顏色套用到下方的詳細調色盤與輸出字串
+                colorInput.value = picker.value;
+                updateOutput();
+            }
+        });
+
+        // 當使用者修改了某個快捷色塊的顏色時
+        picker.addEventListener('input', (e) => {
+            const newColor = e.target.value;
+            block.style.backgroundColor = newColor; // 改變色塊視覺顏色
+            colorInput.value = newColor;            // 同步大調色盤
+            updateOutput();                         // 更新輸出
+            savePaletteColors();                    // 即時儲存至本機暫存
+        });
+    });
+
+    // 監聽文字輸入更新
+    nameInput.addEventListener('input', updateOutput);
+
+    // 監聽大調色盤變動
+    colorInput.addEventListener('input', () => {
+        updateOutput();
+        // 當使用者手動微調下方的大調色盤時，取消上方快捷色塊的高亮選取，避免視覺混淆
+        blocks.forEach(b => b.classList.remove('active'));
+    });
+
+    // 複製到剪貼簿功能
     copyBtn.addEventListener('click', () => {
-        // 使用 Clipboard API 寫入剪貼簿
         navigator.clipboard.writeText(outputCode.textContent).then(() => {
-            // 視覺回饋：改變按鈕文字與顏色
             const originalText = copyBtn.textContent;
             copyBtn.textContent = '✅ 已複製！';
             copyBtn.classList.add('success');
             
-            // 2秒後恢復原狀
             setTimeout(() => {
                 copyBtn.textContent = originalText;
                 copyBtn.classList.remove('success');
@@ -147,6 +251,5 @@
         });
     });
 </script>
-
 </body>
 </html>
