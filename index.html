@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pikmin 色碼產生器</title>
+    <style>
+        /* 基礎重置與手機端排版優化 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        /* 放大輸入框與按鈕，方便手指點擊 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 50px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+            margin-bottom: 16px;
+            padding: 0;
+        }
+        .output-box {
+            background: #eef;
+            padding: 16px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            margin-top: 8px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            text-align: center;
+            color: #333;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:active {
+            background-color: #0056b3;
+        }
+        .success {
+            background-color: #28a745 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Pikmin 色碼產生器</h1>
+    
+    <label for="pikminName">輸入 Pikmin 名字：</label>
+    <input type="text" id="pikminName" placeholder="例如：紅皮克敏" value="皮克敏">
+
+    <label for="pikminColor">選擇顏色：</label>
+    <input type="color" id="pikminColor" value="#ff0000">
+
+    <label>產生的代碼：</label>
+    <div class="output-box" id="outputCode">&lt;color=#ff0000&gt;皮克敏&lt;/color&gt;</div>
+
+    <button id="copyBtn">點擊複製</button>
+</div>
+
+<script>
+    // 綁定 DOM 元素
+    const nameInput = document.getElementById('pikminName');
+    const colorInput = document.getElementById('pikminColor');
+    const outputCode = document.getElementById('outputCode');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 即時更新預覽畫面
+    function updateOutput() {
+        // 如果使用者把名字清空，預設帶入 '皮克敏' 避免格式出錯
+        const name = nameInput.value || '皮克敏'; 
+        const color = colorInput.value;
+        // 組裝字串
+        outputCode.textContent = `<color=${color}>${name}</color>`;
+    }
+
+    // 監聽輸入與顏色改變事件
+    nameInput.addEventListener('input', updateOutput);
+    colorInput.addEventListener('input', updateOutput);
+
+    // 複製功能
+    copyBtn.addEventListener('click', () => {
+        // 使用 Clipboard API 寫入剪貼簿
+        navigator.clipboard.writeText(outputCode.textContent).then(() => {
+            // 視覺回饋：改變按鈕文字與顏色
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✅ 已複製！';
+            copyBtn.classList.add('success');
+            
+            // 2秒後恢復原狀
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('success');
+            }, 2000);
+        }).catch(err => {
+            alert('複製失敗，請手動選取文字複製喔！');
+            console.error('複製失敗:', err);
+        });
+    });
+</script>
+
+</body>
+</html>
